@@ -53,8 +53,8 @@ module = {
     mapCatalogThreads: function (raw) {
       return raw.threads.map(function (rawThread) {
         return {
-          omittedFiles: rawThread['posts_count'],
-          omittedPosts: rawThread['files_count'],
+          omittedFiles: rawThread['files_count'],
+          omittedPosts: rawThread['posts_count'],
           opPost: module.mappings.mapPost(rawThread)
         }
       })
