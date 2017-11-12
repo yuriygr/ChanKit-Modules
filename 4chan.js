@@ -142,7 +142,7 @@ module = {
 
   methods: {
     loadBoards: function (completion) { // ++
-      requestJSON(url('http://a.4cdn.org/boards.json'), function (response, error) {
+      requestJSON(url('a.4cdn.org/boards.json'), function (response, error) {
         if (error) {
           completion(null, error)
         } else {
@@ -209,7 +209,7 @@ module = {
     },
 
     send: function (data, post, completion) { // --
-      var u = url('https://sys.4chan.org/' + post.boardId + '/post')
+      var u = url('sys.4chan.org/' + post.boardId + '/post')
       for (var i = 0; i < post.attachments.length; i++) {
         var a = post.attachments[i]
         data['image'+i] = {
