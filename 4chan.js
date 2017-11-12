@@ -167,7 +167,7 @@ module = {
         if (error) {
           completion(null, error)
         } else {
-          var posts = response.map(function (rawPost, index) {
+          var posts = response['posts'].map(function (rawPost, index) {
             rawPost['boardId'] = board
             return module.mappings.mapPost(rawPost)
           })
