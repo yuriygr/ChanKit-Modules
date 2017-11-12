@@ -102,13 +102,13 @@ module = {
 
     mapAttachment: function (raw) { // ++
       return {
-        url: url('i.4cdn.org/'+ rawPost['boardId'] + raw['tim'] + raw['ext']),
-        thumbnailUrl: url('i.4cdn.org'+ rawPost['boardId'] + raw['tim'] + 's' + raw['ext']),
+        url: url('i.4cdn.org/'+ raw['boardId'] + '/' + raw['tim'] + raw['ext']),
+        thumbnailUrl: url('i.4cdn.org'+ raw['boardId'] + raw['tim'] + 's.jpg'),
         width: raw['w'],
         height: raw['h'],
         thumbnailWidth: raw['tn_w'],
         thumbnailHeight: raw['tn_h'],
-        type: raw['ext'] == '.webm' || raw['ext'] == '.mp4' ? ATTACHMENT_VIDEO : ATTACHMENT_IMAGE,
+        type: raw['ext'] == '.webm' ? ATTACHMENT_VIDEO : ATTACHMENT_IMAGE,
         size: raw['fsize'],
         name: raw['filename'] || raw['tim'] || 'unnamed'
       } 
