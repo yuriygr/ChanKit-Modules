@@ -1,4 +1,3 @@
-var countryCodeRegex = /<img.*src="\/flags\/(\w+).*"/
 var linkRegex = /^\/(\w+)(\/thread\/(\d+)(#p(\d+))?)?/
 var postLinkRegex = /^\#p(\d+)?/
 
