@@ -29,13 +29,13 @@ module = {
 
     mapThreads: function (raw) { // ++
       return raw['threads'].map(function (thread) {
-        var omittedPosts = thread['replies']
-        var omittedFiles = thread['images']
         var posts = thread['posts'].map(function (post) {
           return module.mappings.mapPost(post)
         })
 
         var opPost = posts.shift()
+        var omittedPosts = thread['posts'][0]['replies']
+        var omittedFiles = thread['posts'][0]['images']
 
         return {
           omittedFiles: omittedFiles,
@@ -103,7 +103,7 @@ module = {
     mapAttachment: function (raw) { // ++
       return {
         url: url('i.4cdn.org/'+ raw['boardId'] + '/' + raw['tim'] + raw['ext']),
-        thumbnailUrl: url('i.4cdn.org'+ raw['boardId'] + raw['tim'] + 's.jpg'),
+        thumbnailUrl: url('i.4cdn.org/'+ raw['boardId'] + '/' + raw['tim'] + 's.jpg'),
         width: raw['w'],
         height: raw['h'],
         thumbnailWidth: raw['tn_w'],
