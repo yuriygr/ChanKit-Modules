@@ -21,10 +21,10 @@ module = {
         }
       })
 
-      return {
+      return [{
         name: '',
         boards: boards
-      }
+      }]
     },
 
     mapThreads: function (raw) { // ++
