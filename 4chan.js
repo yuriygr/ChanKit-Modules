@@ -1,5 +1,6 @@
 var countryCodeRegex = /<img.*src="\/flags\/(\w+).*"/
-var linkRegex = /^\/(\w+)(\/res\/(\d+).html(#(\d+))?)?/
+var linkRegex = /^\/(\w+)(\/thread\/(\d+)(#p(\d+))?)?/
+var postLinkRegex = /^\#p(\d+)?/
 
 module = {
   id: '4chan',
@@ -8,39 +9,34 @@ module = {
   kitVersion: '0.1',
   lightColor: '4AA11B',
   darkColor: '77C344',
-  defaultName: 'Аноним',
+  defaultName: 'Anonymous',
  
   mappings: {
     mapBoards: function (raw) {
       var result = []
-      Object.keys(raw).map(function (name) {
-        var boards = raw[name]
+      Object.keys(raw).map(function (rawBoard) {
         result.push({
-          name: name,
-          boards: boards.map(function (rawBoard) {
-            return {
-              id: rawBoard.id,
-              name: rawBoard.name,
-              isAdult: name == "Взрослым" || rawBoard.id == "b"
-            }
-          })
+          name: '',
+          boards: {
+            id: rawBoard.board,
+            name: rawBoard.title,
+            isAdult: rawBoard.ws_board == 0
+          }
         })
       })
 
       return result
     },
 
-    mapThreads: function (raw) {
+    mapThreads: function (raw) { // ++
       return raw['threads'].map(function (thread) {
-        var omittedPosts = thread['posts_count']
-        var omittedFiles = thread['files_count']
+        var omittedPosts = thread['replies']
+        var omittedFiles = thread['images']
         var posts = thread['posts'].map(function (post) {
           return module.mappings.mapPost(post)
         })
 
         var opPost = posts.shift()
-        omittedPosts += posts.length
-        // omittedFiles += posts.reduce(function (post, count))
 
         return {
           omittedFiles: omittedFiles,
@@ -50,35 +46,37 @@ module = {
       })
     },
 
-    mapCatalogThreads: function (raw) {
-      return raw.threads.map(function (rawThread) {
-        return {
-          omittedFiles: rawThread['posts_count'],
-          omittedPosts: rawThread['files_count'],
-          opPost: module.mappings.mapPost(rawThread)
-        }
+    mapCatalogThreads: function (raw) { // ++
+      return raw.map(function (pages) {
+        return pages.map(function (threads) {
+         return threads.map(function (rawThread) {
+            return {
+              omittedFiles: rawThread['images'],
+              omittedPosts: rawThread['replies'],
+              opPost: module.mappings.mapPost(rawThread)
+            }
+          })
+        })
       })
     },
 
-    mapPost: function (raw) {
+    mapPost: function (raw) { // ++
       var post = {
-        content: raw['comment'],
-        subject: raw['subject'],
-        parent: parseInt(raw['parent']),
+        content: raw['com'],
+        subject: raw['sub'],
+        parent: parseInt(raw['resto']),
         name: raw['name'],
-        number: parseInt(raw['num']),
+        number: parseInt(raw['no']),
         trip: raw['trip'],
-        email: raw['email'].replace(/^mailto:/, ''),
-        date: raw['timestamp']
+        date: raw['time']
       }
       
-      if (post.name == 'Anonymous') {
-        post.name = 'Аноним'
+      if (raw['country']) {
+        post.countryCode = raw['country']
       }
 
-      var countryCodeMatch = countryCodeRegex.exec(raw['icon'])
-      if (countryCodeMatch && countryCodeMatch.length == 2) {
-        post.countryCode = countryCodeMatch[1]
+      if (raw['troll_country']) {
+        post.countryCode = raw['troll_country']
       }
 
       var markers = {
@@ -96,32 +94,29 @@ module = {
         }
       }
 
-      if (raw['files']) {
-        post.attachments = raw['files'].map(function (attachment) {
-          return module.mappings.mapAttachment(attachment)
-        })
+      if (raw['filename']) {
+        post.attachments = module.mappings.mapAttachment(raw)
       }
 
       return post
     },
 
-    mapAttachment: function (raw) {
-      var ext = raw['path'].split('.').pop()
+    mapAttachment: function (raw) { // ++
       return {
-        url: url('2ch.hk' + raw['path']),
-        thumbnailUrl: url('2ch.hk' + raw['thumbnail']),
-        width: raw['width'],
-        height: raw['height'],
-        thumbnailWidth: raw['tn_width'],
-        thumbnailHeight: raw['tn_height'],
-        type: ext == 'webm' || ext == 'mp4' ? ATTACHMENT_VIDEO : ATTACHMENT_IMAGE,
-        size: raw['size'],
-        name: raw['fullname'] || raw['name'] || 'unnamed'
+        url: url('i.4cdn.org/'+ rawPost['boardId'] + raw['tim'] + raw['ext']),
+        thumbnailUrl: url('i.4cdn.org'+ rawPost['boardId'] + raw['tim'] + 's' + raw['ext']),
+        width: raw['w'],
+        height: raw['h'],
+        thumbnailWidth: raw['tn_w'],
+        thumbnailHeight: raw['tn_h'],
+        type: raw['ext'] == '.webm' || raw['ext'] == '.mp4' ? ATTACHMENT_VIDEO : ATTACHMENT_IMAGE,
+        size: raw['fsize'],
+        name: raw['filename'] || raw['tim'] || 'unnamed'
       } 
 
     },
 
-    mapPostingData: function (post) {
+    mapPostingData: function (post) { // --
       var result = {
         json: '1',
         task: 'post',
@@ -144,9 +139,10 @@ module = {
     }
   },
 
+
   methods: {
-    loadBoards: function (completion) {
-      requestJSON(url('2ch.hk/makaba/mobile.fcgi?task=get_boards'), function (response, error) {
+    loadBoards: function (completion) { // ++
+      requestJSON(url('http://a.4cdn.org/boards.json'), function (response, error) {
         if (error) {
           completion(null, error)
         } else {
@@ -156,10 +152,8 @@ module = {
       })
     },
 
-    loadThreads: function (board, page, completion) {
-      var stringPage = page == 0 ? 'index' : page.toString()
-
-      requestJSON(url('2ch.hk/' + board + '/' + stringPage + '.json'), function (response, error) {
+    loadThreads: function (board, page, completion) { // ++
+      requestJSON(url('a.4cdn.org/' + board + '/' + (page + 1) + '.json'), function (response, error) {
         if (error) {
           completion(null, error)
         } else {
@@ -168,15 +162,14 @@ module = {
       })
     },
 
-    loadThread: function (board, number, completion) {
-      var u = url('2ch.hk/makaba/mobile.fcgi?task=get_thread&board='+board+'&thread='+number+'&post=0')
+    loadThread: function (board, number, completion) { // ++
+      var u = url('a.4cdn.org/' + board + '/thread/' + number + '.json')
       requestJSON(u, function (response, error) {
         if (error) {
           completion(null, error)
         } else {
           var posts = response.map(function (rawPost, index) {
-            if (index != 0)
-              rawPost['sticky'] = 0
+            rawPost['boardId'] = board
             return module.mappings.mapPost(rawPost)
           })
 
@@ -185,8 +178,8 @@ module = {
       })
     },
 
-    loadCatalog: function (board, completion) {
-      var u = url('2ch.hk/'+board+'/catalog.json')
+    loadCatalog: function (board, completion) { // ++
+      var u = url('a.4cdn.org/' + board + '/catalog.json')
       requestJSON(u, function (response, error) {
         if (error) {
           completion(null, error)
@@ -196,50 +189,15 @@ module = {
       })
     },
 
-    isCaptchaEnabled: function (board, forCreatingThread, completion) {
-      var checkForCaptchaInBoard = function () {
-        requestJSON(url('2ch.hk/api/captcha/settings/' + board), function (response, error) {
-          completion(response['enabled'] || true)
-        })
-      }
-
-      var checkIfCanPostWithoutCaptcha = function () {
-        requestJSON(url('2ch.hk/api/captcha/app/id/' + getPublicKey()), function (response, error) {
-          var canPost = response['result'] == 1 && response['type'] == 'app'
-          if (canPost) {
-            completion(false)
-          } else {
-            checkForCaptchaInBoard()
-          }
-        })
-      }
-
-      if (forCreatingThread) {
-        checkForCaptchaInBoard()
-      } else {
-        checkIfCanPostWithoutCaptcha()
-      }
+    isCaptchaEnabled: function (board, forCreatingThread, completion) { // ++
+      completion(true)
     },
 
-    getCaptcha: function (completion) {
-      requestJSON(url('2ch.hk/api/captcha/2chaptcha/service_id', function (response, error) {
-        var id = response['id']
-        if (!id) {
-          completion(null)
-          return
-        }
-
-        var imageUrl = url('2ch.hk/api/captcha/2chaptcha/image/'+id)
-        
-        completion({
-          type: IMAGE_CAPTCHA,
-          key: id,
-          imageUrl: imageUrl
-        })
-      }))
+    getCaptcha: function (completion) { // ++
+      completion(false)
     },
 
-    sendPost: function (postingData, completion) {
+    sendPost: function (postingData, completion) { // --
       var data = module.mappings.mapPostingData(postingData)
       if (postingData.captchaResult) {
         module.methods.send(data, postingData, completion)
@@ -250,8 +208,8 @@ module = {
       }
     },
 
-    send: function (data, post, completion) {
-      var u = url('2ch.hk/makaba/posting.fcgi')
+    send: function (data, post, completion) { // --
+      var u = url('https://sys.4chan.org/' + post.boardId + '/post')
       for (var i = 0; i < post.attachments.length; i++) {
         var a = post.attachments[i]
         data['image'+i] = {
@@ -271,7 +229,7 @@ module = {
       })
     },
 
-    configurePostingWithoutCaptcha: function (data, completion) {
+    configurePostingWithoutCaptcha: function (data, completion) { // --
       requestJSON(url('2ch.hk/api/captcha/app/id/' + getPublicKey()), function (response, error) {
         var canPost = response['result'] == 1 && response['type'] == 'app'
         var id = response['id']
@@ -286,33 +244,32 @@ module = {
     }
   },
 
-  markupMappings: {
-    classNames: {
-      's': STRIKETHROUGH,
-      'unkfunc': QUOTE,
-      'spoiler': SPOILER,
-    },
-
-    nodeNames: {
-      'strong': BOLD,
-      'em': ITALIC,
-      'sub': LOWER_INDEX,
-      'sup': UPPER_INDEX,
-    }
-  },
 
   linkCoder: {
-    parseURL: function (url) {
-      url = url.replace(/^https*:\/\/2ch.hk/, '')
-      var match = linkRegex.exec(url)
-      if (!match)
+    parseURL: function (url) { // ++
+      url = url.replace(/^https*:\/\/boards.4chan.org/, '')
+
+      var onlyPostLink = postLinkRegex.exec(url)
+      var link = linkRegex.exec(url)
+
+      var result = {}
+
+      if (onlyPostLink) {
+        result.boardId = ''
+        result.threadNumber = parseInt('0')
+        result.postNumber = parseInt(onlyPostLink[1])
+        result.isSameThread = true
+
+        return result
+      }
+
+      if (!link)
         return null
 
-      var boardId = match[1]
-      var threadNumber = match[3]
-      var postNumber = match[5]
-      var result = {}
-      
+      var boardId = link[1]
+      var threadNumber = link[3]
+      var postNumber = link[5]
+
       if (boardId) {
         result.boardId = boardId
       }
@@ -328,14 +285,14 @@ module = {
       return result
     },
 
-    getURL: function (link) {
-      var url = "https://2ch.hk/"
+    getURL: function (link) { // ++
+      var url = "https://boards.4chan.org/"
       if (link.boardId) {
         url += link.boardId + '/'
       }
 
       if (link.threadNumber) {
-        url += 'res/' + link.threadNumber + '.html'
+        url += 'thread/' + link.threadNumber + '/'
       }
 
       if (link.postNumber) {
