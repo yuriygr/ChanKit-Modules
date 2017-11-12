@@ -61,7 +61,7 @@ module = {
 
     mapPost: function (raw) { // ++
       var post = {
-        content: raw['com'],
+        content: raw['com'] || '',
         subject: raw['sub'],
         parent: parseInt(raw['resto']),
         name: raw['name'],
@@ -94,7 +94,7 @@ module = {
       }
 
       if (raw['filename']) {
-        post.attachments = module.mappings.mapAttachment(raw)
+        post.attachments = [module.mappings.mapAttachment(raw)]
       }
 
       return post
