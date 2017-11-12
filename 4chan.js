@@ -13,19 +13,18 @@ module = {
  
   mappings: {
     mapBoards: function (raw) {
-      var result = []
-      Object.keys(raw).map(function (rawBoard) {
-        result.push({
-          name: '',
-          boards: {
-            id: rawBoard.board,
-            name: rawBoard.title,
-            isAdult: rawBoard.ws_board == 0
-          }
-        })
+      var boards = raw.boards.map(function (rawBoard) {
+        return {
+          id: rawBoard.board,
+          name: rawBoard.title,
+          isAdult: rawBoard.ws_board == 0
+        }
       })
 
-      return result
+      return {
+        name: '',
+        boards: boards
+      }
     },
 
     mapThreads: function (raw) { // ++
