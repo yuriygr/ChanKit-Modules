@@ -295,7 +295,7 @@ module = {
       }
 
       if (link.postNumber) {
-        url += '#' + link.postNumber
+        url += '#p' + link.postNumber
       }
 
       return url
